@@ -1,43 +1,23 @@
+const { createClient } = require('@supabase/supabase-js');
 const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const session = require('express-session');
 const bcrypt = require('bcryptjs');
 const path = require('path');
-const fs = require('fs');
 
 const app = express();
-const DATA_FILE = path.join(__dirname, 'data.json');
 
-// Initialize data file with default data
-function initData() {
-    if (!fs.existsSync(DATA_FILE)) {
-        const initialData = {
-            videos: [],
-            experiences: [],
-            skills: [],
-            inquiries: [],
-            admin: [{ username: 'admin', password: bcrypt.hashSync('karan123', 10) }]
-        };
-        fs.writeFileSync(DATA_FILE, JSON.stringify(initialData, null, 2));
-    }
-}
+// Supabase Configuration
+const supabaseUrl = 'https://hcaccdvvnjhnypuhgqqc.supabase.co';
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhjYWNjZHZ2bmhobnlwdWhnZ3FjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzY2NzIwMDAsImV4cCI6MjA1MjI0ODAwMH0.sb_publishable_SpmtA6LdDYE8PtVJd8BViw_gmEt9dNk';
 
-function loadData() {
-    return JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
-}
-
-function saveData(data) {
-    fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
-}
-
-initData();
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Middleware
 app.use(cors());
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, 'public')));
-app.use('/uploads', express.static(path.join(__dirname, 'public', 'uploads')));
 app.use(session({
     secret: 'karan-portfolio-secret-key',
     resave: false,
@@ -47,45 +27,64 @@ app.use(session({
 // ==================== PUBLIC API ROUTES ====================
 
 // Get all videos
-app.get('/api/videos', (req, res) => {
-    const data = loadData();
-    res.json(data.videos);
+app.get('/api/videos', async (req, res) => {
+    try {
+        const { data, error } = await supabase
+            .from('videos')
+            .select('*')
+            .order('created_at', { ascending: false });
+        if (error) throw error;
+        res.json(data);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // Get all experiences
-app.get('/api/experiences', (req, res) => {
-    const data = loadData();
-    res.json(data.experiences);
+app.get('/api/experiences', async (req, res) => {
+    try {
+        const { data, error } = await supabase
+            .from('experiences')
+            .select('*')
+            .order('is_current', { ascending: false });
+        if (error) throw error;
+        res.json(data);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // Get all skills
-app.get('/api/skills', (req, res) => {
-    const data = loadData();
-    res.json(data.skills);
+app.get('/api/skills', async (req, res) => {
+    try {
+        const { data, error } = await supabase
+            .from('skills')
+            .select('*')
+            .order('proficiency', { ascending: false });
+        if (error) throw error;
+        res.json(data);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // Submit contact form (public)
-app.post('/api/inquiries', (req, res) => {
-    const data = loadData();
-    const { name, email, projectType, budget, message } = req.body;
-    const newInquiry = {
-        id: Date.now(),
-        name,
-        email,
-        projectType,
-        budget,
-        message,
-        createdAt: new Date().toISOString(),
-        status: 'new'
-    };
-    data.inquiries.unshift(newInquiry);
-    saveData(data);
-    res.json({ message: 'Inquiry submitted successfully!' });
+app.post('/api/inquiries', async (req, res) => {
+    try {
+        const { name, email, projectType, budget, message } = req.body;
+        const { data, error } = await supabase
+            .from('inquiries')
+            .insert([{ name, email, project_type: projectType, budget, message, status: 'new' }])
+            .select();
+        if (error) throw error;
+        res.json({ message: 'Inquiry submitted successfully!' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // ==================== ADMIN API ROUTES ====================
 
-// Middleware to check admin auth
 function requireAdmin(req, res, next) {
     if (!req.session.adminId) {
         return res.status(401).json({ error: 'Unauthorized' });
@@ -94,16 +93,27 @@ function requireAdmin(req, res, next) {
 }
 
 // Admin login
-app.post('/api/admin/login', (req, res) => {
-    const data = loadData();
-    const { username, password } = req.body;
-    const admin = data.admin.find(a => a.username === username);
+app.post('/api/admin/login', async (req, res) => {
+    try {
+        const { username, password } = req.body;
+        const { data, error } = await supabase
+            .from('admin')
+            .select('*')
+            .eq('username', username)
+            .single();
 
-    if (admin && bcrypt.compareSync(password, admin.password)) {
-        req.session.adminId = admin.id;
-        res.json({ message: 'Login successful' });
-    } else {
-        res.status(401).json({ error: 'Invalid credentials' });
+        if (error || !data) {
+            return res.status(401).json({ error: 'Invalid credentials' });
+        }
+
+        if (bcrypt.compareSync(password, data.password)) {
+            req.session.adminId = data.id;
+            res.json({ message: 'Login successful' });
+        } else {
+            res.status(401).json({ error: 'Invalid credentials' });
+        }
+    } catch (err) {
+        res.status(500).json({ error: err.message });
     }
 });
 
@@ -120,117 +130,142 @@ app.get('/api/admin/check', (req, res) => {
 
 // ==================== ADMIN VIDEO ROUTES ====================
 
-// Add video with URL (YouTube/Vimeo) - BEST for Vercel
-app.post('/api/admin/videos/url', requireAdmin, (req, res) => {
-    const data = loadData();
-    const { title, category, videoUrl, duration, description } = req.body;
-
-    const newVideo = {
-        id: Date.now(),
-        title,
-        category,
-        videoPath: videoUrl, // Store URL
-        duration,
-        description,
-        createdAt: new Date().toISOString()
-    };
-
-    data.videos.unshift(newVideo);
-    saveData(data);
-    res.json({ message: 'Video added successfully!' });
+app.post('/api/admin/videos/url', requireAdmin, async (req, res) => {
+    try {
+        const { title, category, videoUrl, duration, description } = req.body;
+        const { data, error } = await supabase
+            .from('videos')
+            .insert([{
+                title,
+                category,
+                video_path: videoUrl,
+                duration,
+                description
+            }])
+            .select();
+        if (error) throw error;
+        res.json({ message: 'Video added successfully!' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
-// Delete video
-app.delete('/api/admin/videos/:id', requireAdmin, (req, res) => {
-    const data = loadData();
-    data.videos = data.videos.filter(v => v.id != req.params.id);
-    saveData(data);
-    res.json({ message: 'Video deleted successfully' });
+app.delete('/api/admin/videos/:id', requireAdmin, async (req, res) => {
+    try {
+        const { error } = await supabase
+            .from('videos')
+            .delete()
+            .eq('id', req.params.id);
+        if (error) throw error;
+        res.json({ message: 'Video deleted successfully' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // ==================== ADMIN EXPERIENCE ROUTES ====================
 
-app.post('/api/admin/experiences', requireAdmin, (req, res) => {
-    const data = loadData();
-    const { company, role, duration, description, isCurrent } = req.body;
-
-    const newExp = {
-        id: Date.now(),
-        company,
-        role,
-        duration,
-        description,
-        isCurrent
-    };
-
-    data.experiences.unshift(newExp);
-    saveData(data);
-    res.json({ message: 'Experience added successfully!' });
+app.post('/api/admin/experiences', requireAdmin, async (req, res) => {
+    try {
+        const { company, role, duration, description, isCurrent } = req.body;
+        const { data, error } = await supabase
+            .from('experiences')
+            .insert([{
+                company,
+                role,
+                duration,
+                description,
+                is_current: isCurrent || false
+            }])
+            .select();
+        if (error) throw error;
+        res.json({ message: 'Experience added successfully!' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
-app.delete('/api/admin/experiences/:id', requireAdmin, (req, res) => {
-    const data = loadData();
-    data.experiences = data.experiences.filter(e => e.id != req.params.id);
-    saveData(data);
-    res.json({ message: 'Experience deleted successfully' });
+app.delete('/api/admin/experiences/:id', requireAdmin, async (req, res) => {
+    try {
+        const { error } = await supabase
+            .from('experiences')
+            .delete()
+            .eq('id', req.params.id);
+        if (error) throw error;
+        res.json({ message: 'Experience deleted successfully' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // ==================== ADMIN SKILLS ROUTES ====================
 
-app.post('/api/admin/skills', requireAdmin, (req, res) => {
-    const data = loadData();
-    const { name, category, proficiency, icon } = req.body;
-
-    const newSkill = {
-        id: Date.now(),
-        name,
-        category,
-        proficiency,
-        icon
-    };
-
-    data.skills.push(newSkill);
-    saveData(data);
-    res.json({ message: 'Skill added successfully!' });
+app.post('/api/admin/skills', requireAdmin, async (req, res) => {
+    try {
+        const { name, category, proficiency, icon } = req.body;
+        const { data, error } = await supabase
+            .from('skills')
+            .insert([{ name, category, proficiency, icon }])
+            .select();
+        if (error) throw error;
+        res.json({ message: 'Skill added successfully!' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
-app.delete('/api/admin/skills/:id', requireAdmin, (req, res) => {
-    const data = loadData();
-    data.skills = data.skills.filter(s => s.id != req.params.id);
-    saveData(data);
-    res.json({ message: 'Skill deleted successfully' });
+app.delete('/api/admin/skills/:id', requireAdmin, async (req, res) => {
+    try {
+        const { error } = await supabase
+            .from('skills')
+            .delete()
+            .eq('id', req.params.id);
+        if (error) throw error;
+        res.json({ message: 'Skill deleted successfully' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // ==================== ADMIN INQUIRIES ROUTES ====================
 
-app.get('/api/admin/inquiries', requireAdmin, (req, res) => {
-    const data = loadData();
-    res.json(data.inquiries);
+app.get('/api/admin/inquiries', requireAdmin, async (req, res) => {
+    try {
+        const { data, error } = await supabase
+            .from('inquiries')
+            .select('*')
+            .order('created_at', { ascending: false });
+        if (error) throw error;
+        res.json(data);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
-app.patch('/api/admin/inquiries/:id/status', requireAdmin, (req, res) => {
-    const data = loadData();
-    const inquiry = data.inquiries.find(i => i.id == req.params.id);
-    if (inquiry) {
-        inquiry.status = req.body.status;
-        saveData(data);
+app.patch('/api/admin/inquiries/:id/status', requireAdmin, async (req, res) => {
+    try {
+        const { status } = req.body;
+        const { error } = await supabase
+            .from('inquiries')
+            .update({ status })
+            .eq('id', req.params.id);
+        if (error) throw error;
+        res.json({ message: 'Status updated successfully' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
     }
-    res.json({ message: 'Status updated successfully' });
 });
 
 // ==================== PAGE ROUTES ====================
 
-// Main portfolio page
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Separate admin page
 app.get('/admin', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'admin.html'));
 });
 
-// Start server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
