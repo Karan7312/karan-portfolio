@@ -1,0 +1,166 @@
+{
+  "videos": [
+    {
+      "id": 1,
+      "title": "Brand Commercial - Tech Startup",
+      "category": "commercial",
+      "videoUrl": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+      "duration": "2:30",
+      "description": "Promotional video for a tech startup",
+      "createdAt": "2026-02-01T00:00:00.000Z"
+    },
+    {
+      "id": 2,
+      "title": "Music Video - Indie Band",
+      "category": "music-video",
+      "videoUrl": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+      "duration": "4:15",
+      "description": "Music video for indie band",
+      "createdAt": "2026-01-15T00:00:00.000Z"
+    },
+    {
+      "id": 3,
+      "title": "Documentary - City Life",
+      "category": "documentary",
+      "videoUrl": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+      "duration": "15:00",
+      "description": "Short documentary about urban life",
+      "createdAt": "2026-01-01T00:00:00.000Z"
+    },
+    {
+      "id": 4,
+      "title": "Instagram Reel - Fashion Brand",
+      "category": "social-media",
+      "videoUrl": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+      "duration": "0:30",
+      "description": "Social media content for fashion brand",
+      "createdAt": "2025-12-20T00:00:00.000Z"
+    }
+  ],
+  "experiences": [
+    {
+      "id": 1,
+      "company": "Freelance",
+      "role": "Professional Video Editor",
+      "duration": "2023 - Present",
+      "description": "Working with clients worldwide on commercial videos, music videos, and social media content. Specializing in Adobe Premiere Pro and After Effects.",
+      "isCurrent": true
+    },
+    {
+      "id": 2,
+      "company": "Digital Media Agency",
+      "role": "Senior Video Editor",
+      "duration": "2021 - 2023",
+      "description": "Led video production for major brand campaigns. Managed a team of 3 junior editors.",
+      "isCurrent": false
+    },
+    {
+      "id": 3,
+      "company": "Content Creation Studio",
+      "role": "Video Editor & Motion Graphics",
+      "duration": "2019 - 2021",
+      "description": "Created engaging video content for YouTube channels and social media platforms.",
+      "isCurrent": false
+    }
+  ],
+  "skills": [
+    {
+      "id": 1,
+      "name": "Adobe Premiere Pro",
+      "category": "video-editing",
+      "proficiency": 95
+    },
+    {
+      "id": 2,
+      "name": "Adobe After Effects",
+      "category": "motion-graphics",
+      "proficiency": 85
+    },
+    {
+      "id": 3,
+      "name": "DaVinci Resolve",
+      "category": "video-editing",
+      "proficiency": 80
+    },
+    {
+      "id": 4,
+      "name": "Final Cut Pro",
+      "category": "video-editing",
+      "proficiency": 75
+    },
+    {
+      "id": 5,
+      "name": "Color Grading",
+      "category": "color-grading",
+      "proficiency": 90
+    },
+    {
+      "id": 6,
+      "name": "Sound Design",
+      "category": "audio",
+      "proficiency": 80
+    },
+    {
+      "id": 7,
+      "name": "Adobe Audition",
+      "category": "audio",
+      "proficiency": 75
+    },
+    {
+      "id": 8,
+      "name": "Cinema 4D",
+      "category": "motion-graphics",
+      "proficiency": 60
+    },
+    {
+      "id": 9,
+      "name": "CapCut",
+      "category": "video-editing",
+      "proficiency": 85
+    },
+    {
+      "id": 10,
+      "name": "Motion Graphics",
+      "category": "motion-graphics",
+      "proficiency": 85
+    }
+  ],
+  "inquiries": [
+    {
+      "id": 1772265352027,
+      "name": "nnfgf",
+      "email": "cfcf@gmail.com",
+      "projectType": "commercial",
+      "budget": "15k-50k",
+      "message": "ddxvxfbfx",
+      "createdAt": "2026-02-28T07:55:52.027Z",
+      "status": "new"
+    },
+    {
+      "id": 1772264180145,
+      "name": "Rafaliya Karan Narendrabhai ",
+      "email": "karan7312@gmail.com",
+      "projectType": "commercial",
+      "budget": "5k-15k",
+      "message": "dbdfifh",
+      "createdAt": "2026-02-28T07:36:20.145Z",
+      "status": "new"
+    },
+    {
+      "id": 1772173953300,
+      "name": "Karan Rafaliya",
+      "email": "rafaliyakaran9@gmail.com",
+      "projectType": "commercial",
+      "budget": "under-5k",
+      "message": "dawsfs",
+      "createdAt": "2026-02-27T06:32:33.300Z",
+      "status": "new"
+    }
+  ],
+  "admin": [
+    {
+      "username": "admin",
+      "password": "$2a$10$6Fl6q2EWXZ6KWNcoYm1lb.U1E/Wnpee4KAS3EL/yNYa69I4GL6Bz."
+    }
+  ]
+}

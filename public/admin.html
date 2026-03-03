@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel | KARAN</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --bg-primary: #08080c; --bg-secondary: #0f0f15; --bg-card: #14141c;
+            --accent-red: #ff3d5a; --accent-cyan: #00d4ff;
+            --accent-gradient: linear-gradient(135deg, #ff3d5a 0%, #ff6b35 100%);
+            --text-white: #ffffff; --text-gray: #8a8a9a; --text-muted: #4a4a5a;
+            --border-color: rgba(255, 61, 90, 0.15); --glass-bg: rgba(15, 15, 21, 0.85);
+        }
+        body { font-family: 'Outfit', sans-serif; background: var(--bg-primary); color: var(--text-white); min-height: 100vh; }
+
+        .admin-container { max-width: 1200px; margin: 0 auto; padding: 40px 30px; }
+
+        .admin-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px; padding-bottom: 20px; border-bottom: 1px solid var(--border-color); }
+        .admin-header h1 { font-size: 32px; font-weight: 700; }
+        .admin-header h1 span { color: var(--accent-red); }
+        .back-btn { display: inline-flex; align-items: center; gap: 8px; padding: 12px 24px; background: var(--glass-bg); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-white); text-decoration: none; font-size: 14px; transition: all 0.3s ease; }
+        .back-btn:hover { border-color: var(--accent-red); }
+        .logout-btn { padding: 12px 24px; background: var(--accent-red); border: none; border-radius: 8px; color: white; font-size: 14px; cursor: pointer; transition: all 0.3s ease; }
+        .logout-btn:hover { opacity: 0.9; }
+
+        .admin-tabs { display: flex; gap: 10px; margin-bottom: 30px; flex-wrap: wrap; }
+        .admin-tab { padding: 14px 28px; background: var(--glass-bg); border: 1px solid var(--border-color); color: var(--text-gray); border-radius: 10px; cursor: pointer; font-family: 'Outfit', sans-serif; font-size: 14px; font-weight: 500; transition: all 0.3s ease; }
+        .admin-tab.active { background: var(--accent-gradient); border-color: var(--accent-red); color: white; }
+
+        .admin-section { display: none; }
+        .admin-section.active { display: block; }
+
+        .form-card { background: var(--glass-bg); border: 1px solid var(--border-color); border-radius: 18px; padding: 32px; margin-bottom: 30px; }
+        .form-card h3 { font-size: 20px; margin-bottom: 24px; }
+
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+        .form-group { margin-bottom: 18px; }
+        .form-group.full { grid-column: 1 / -1; }
+        .form-group label { display: block; font-size: 12px; font-weight: 500; color: var(--text-gray); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 14px 18px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 10px; color: var(--text-white); font-family: 'Outfit', sans-serif; font-size: 14px; transition: all 0.3s easeform-group input:focus; }
+        ., .form-group select:focus, .form-group textarea:focus { outline: none; border-color: var(--accent-red); }
+        .form-group textarea { min-height: 100px; resize: vertical; }
+
+        .file-upload { border: 2px dashed var(--border-color); border-radius: 12px; padding: 40px; text-align: center; cursor: pointer; transition: all 0.3s ease; }
+        .file-upload:hover { border-color: var(--accent-red); }
+        .file-upload i { font-size: 40px; color: var(--accent-red); margin-bottom: 15px; }
+        .file-upload p { color: var(--text-gray); margin-bottom: 10px; }
+        .file-upload span { font-size: 12px; color: var(--text-muted); }
+        .file-upload input { display: none; }
+        .file-name { margin-top: 15px; padding: 10px; background: var(--bg-primary); border-radius: 8px; font-size: 13px; color: var(--accent-cyan); }
+
+        .btn { display: inline-flex; align-items: center; gap: 8px; padding: 14px 28px; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; border: none; font-family: 'Outfit', sans-serif; transition: all 0.3s ease; }
+        .btn-primary { background: var(--accent-gradient); color: white; }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(255, 61, 90, 0.3); }
+
+        .data-list { display: grid; gap: 14px; }
+        .data-item { background: var(--glass-bg); border: 1px solid var(--border-color); border-radius: 14px; padding: 22px; display: flex; justify-content: space-between; align-items: center; }
+        .data-item-info h4 { font-size: 16px; margin-bottom: 4px; }
+        .data-item-info p { font-size: 13px; color: var(--text-gray); }
+        .btn-delete { padding: 10px 18px; background: rgba(255, 61, 90, 0.1); border: 1px solid var(--accent-red); color: var(--accent-red); border-radius: 8px; cursor: pointer; font-size: 12px; transition: all 0.3s ease; }
+        .btn-delete:hover { background: var(--accent-red); color: white; }
+
+        .status-badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 600; text-transform: uppercase; }
+        .status-new { background: rgba(0, 212, 255, 0.15); color: var(--accent-cyan); }
+        .status-contacted { background: rgba(255, 107, 53, 0.15); color: #ff6b35; }
+        .status-completed { background: rgba(46, 213, 115, 0.15); color: #2ed573; }
+
+        /* Login Page */
+        .login-container { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+        .login-card { background: var(--glass-bg); border: 1px solid var(--border-color); border-radius: 24px; padding: 50px; width: 100%; max-width: 420px; text-align: center; }
+        .login-card h2 { font-size: 28px; margin-bottom: 10px; }
+        .login-card > p { color: var(--text-gray); margin-bottom: 35px; }
+        .login-card .form-group input { text-align: center; }
+        .login-card .btn { width: 100%; justify-content: center; margin-top: 10px; }
+
+        .hidden { display: none !important; }
+
+        .upload-options { display: flex; gap: 15px; margin-bottom: 18px; }
+        .upload-option { flex: 1; padding: 20px; background: var(--bg-primary); border: 2px solid var(--border-color); border-radius: 12px; text-align: center; cursor: pointer; transition: all 0.3s ease; }
+        .upload-option:hover, .upload-option.active { border-color: var(--accent-red); }
+        .upload-option i { font-size: 28px; color: var(--accent-red); margin-bottom: 10px; }
+        .upload-option p { font-size: 13px; color: var(--text-gray); }
+    </style>
+</head>
+<body>
+    <!-- Login Page -->
+    <div id="loginPage" class="login-container">
+        <div class="login-card">
+            <h2>Admin <span style="color: var(--accent-red);">Login</span></h2>
+            <p>Manage your portfolio content</p>
+            <form id="loginForm">
+                <div class="form-group">
+                    <input type="text" id="username" placeholder="Username" required>
+                </div>
+                <div class="form-group">
+                    <input type="password" id="password" placeholder="Password" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Login</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Admin Panel -->
+    <div id="adminPanel" class="admin-container hidden">
+        <div class="admin-header">
+            <h1>Admin <span>Panel</span></h1>
+            <div style="display: flex; gap: 15px;">
+                <a href="/" class="back-btn"><i class="fas fa-arrow-left"></i> View Site</a>
+                <button class="logout-btn" onclick="logout()">Logout</button>
+            </div>
+        </div>
+
+        <div class="admin-tabs">
+            <button class="admin-tab active" data-tab="videos">Videos</button>
+            <button class="admin-tab" data-tab="experiences">Experience</button>
+            <button class="admin-tab" data-tab="skills">Skills</button>
+            <button class="admin-tab" data-tab="inquiries">Inquiries</button>
+        </div>
+
+        <!-- Videos Section -->
+        <div id="tab-videos" class="admin-section active">
+            <div class="form-card">
+                <h3>Add New Video</h3>
+                <form id="addVideoForm">
+                    <div class="upload-options">
+                        <div class="upload-option active" id="uploadOptionFile" onclick="setUploadMode('file')">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                            <p>Upload File</p>
+                        </div>
+                        <div class="upload-option" id="uploadOptionUrl" onclick="setUploadMode('url')">
+                            <i class="fas fa-link"></i>
+                            <p>YouTube/Vimeo URL</p>
+                        </div>
+                    </div>
+
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <input type="text" id="videoTitle" placeholder="Video Title" required>
+                        </div>
+                        <div class="form-group">
+                            <select id="videoCategory" required>
+                                <option value="">Select Category</option>
+                                <option value="commercial">Commercial</option>
+                                <option value="music-video">Music Video</option>
+                                <option value="reels">Reels/Shorts</option>
+                                <option value="podcast">Podcast</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group" id="fileUploadGroup">
+                        <div class="file-upload" onclick="document.getElementById('videoFile').click()">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                            <p>Click to upload video file</p>
+                            <span>MP4, WebM, MOV (Max 500MB)</span>
+                            <input type="file" id="videoFile" accept="video/*">
+                            <div class="file-name" id="fileName"></div>
+                        </div>
+                    </div>
+
+                    <div class="form-group hidden" id="urlUploadGroup">
+                        <input type="text" id="videoUrl" placeholder="YouTube or Vimeo URL">
+                    </div>
+
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <input type="text" id="videoDuration" placeholder="Duration (e.g., 3:45)">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <textarea id="videoDescription" placeholder="Description (optional)"></textarea>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-plus"></i> Add Video</button>
+                </form>
+            </div>
+
+            <div class="data-list" id="videosList"></div>
+        </div>
+
+        <!-- Experience Section -->
+        <div id="tab-experiences" class="admin-section">
+            <div class="form-card">
+                <h3>Add Experience</h3>
+                <form id="addExperienceForm">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <input type="text" id="expCompany" placeholder="Company Name" required>
+                        </div>
+                        <div class="form-group">
+                            <input type="text" id="expRole" placeholder="Your Role" required>
+                        </div>
+                    </div>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <input type="text" id="expDuration" placeholder="Duration (e.g., 2023 - Present)" required>
+                        </div>
+                        <div class="form-group" style="display: flex; align-items: center; gap: 10px; margin-top: 25px;">
+                            <input type="checkbox" id="expCurrent" style="width: auto;">
+                            <label style="margin: 0;">Currently Working</label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <textarea id="expDescription" placeholder="Description"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-plus"></i> Add Experience</button>
+                </form>
+            </div>
+            <div class="data-list" id="experiencesList"></div>
+        </div>
+
+        <!-- Skills Section -->
+        <div id="tab-skills" class="admin-section">
+            <div class="form-card">
+                <h3>Add Skill</h3>
+                <form id="addSkillForm">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <input type="text" id="skillName" placeholder="Skill Name" required>
+                        </div>
+                        <div class="form-group">
+                            <select id="skillCategory" required>
+                                <option value="">Select Category</option>
+                                <option value="video-editing">Video Editing</option>
+                                <option value="color-grading">Color Grading</option>
+                                <option value="motion-graphics">Motion Graphics</option>
+                                <option value="audio">Audio Editing</option>
+                                <option value="other">Other Tools</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Proficiency: <span id="skillValue">70</span>%</label>
+                        <input type="range" id="skillProficiency" min="10" max="100" value="70" oninput="document.getElementById('skillValue').textContent = this.value" style="padding: 0;">
+                    </div>
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-plus"></i> Add Skill</button>
+                </form>
+            </div>
+            <div class="data-list" id="skillsList"></div>
+        </div>
+
+        <!-- Inquiries Section -->
+        <div id="tab-inquiries" class="admin-section">
+            <div class="data-list" id="inquiriesList"></div>
+        </div>
+    </div>
+
+    <script>
+        let uploadMode = 'file';
+        let selectedFile = null;
+
+        // Check if logged in
+        async function checkAuth() {
+            try {
+                const res = await fetch('/api/admin/check');
+                const data = await res.json();
+                if (data.authenticated) {
+                    document.getElementById('loginPage').classList.add('hidden');
+                    document.getElementById('adminPanel').classList.remove('hidden');
+                    loadAdminData();
+                }
+            } catch (e) { console.error(e); }
+        }
+        checkAuth();
+
+        // Login
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                const res = await fetch('/api/admin/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+
+                if (res.ok) {
+                    document.getElementById('loginPage').classList.add('hidden');
+                    document.getElementById('adminPanel').classList.remove('hidden');
+                    loadAdminData();
+                } else {
+                    alert('Invalid credentials');
+                }
+            } catch (err) { console.error(err); }
+        });
+
+        // Logout
+        async function logout() {
+            await fetch('/api/admin/logout', { method: 'POST' });
+            document.getElementById('loginPage').classList.remove('hidden');
+            document.getElementById('adminPanel').classList.add('hidden');
+            document.getElementById('loginForm').reset();
+        }
+
+        // Tab switching
+        document.querySelectorAll('.admin-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.admin-section').forEach(s => s.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+            });
+        });
+
+        // Upload mode
+        function setUploadMode(mode) {
+            uploadMode = mode;
+            document.getElementById('uploadOptionFile').classList.toggle('active', mode === 'file');
+            document.getElementById('uploadOptionUrl').classList.toggle('active', mode === 'url');
+            document.getElementById('fileUploadGroup').classList.toggle('hidden', mode !== 'file');
+            document.getElementById('urlUploadGroup').classList.toggle('hidden', mode !== 'url');
+        }
+
+        // File selection
+        document.getElementById('videoFile').addEventListener('change', (e) => {
+            if (e.target.files[0]) {
+                selectedFile = e.target.files[0];
+                document.getElementById('fileName').textContent = selectedFile.name;
+            }
+        });
+
+        // Load admin data
+        async function loadAdminData() {
+            try {
+                const [videos, experiences, skills, inquiries] = await Promise.all([
+                    fetch('/api/videos').then(r => r.json()),
+                    fetch('/api/experiences').then(r => r.json()),
+                    fetch('/api/skills').then(r => r.json()),
+                    fetch('/api/admin/inquiries').then(r => r.json())
+                ]);
+
+                // Videos
+                document.getElementById('videosList').innerHTML = videos.length
+                    ? videos.map(v => `
+                        <div class="data-item">
+                            <div class="data-item-info">
+                                <h4>${v.title}</h4>
+                                <p>${v.category} | ${v.duration || 'No duration'}</p>
+                            </div>
+                            <button class="btn-delete" onclick="deleteVideo(${v.id})">Delete</button>
+                        </div>`).join('')
+                    : '<p style="color: #8a8a9a; text-align: center; padding: 20px;">No videos</p>';
+
+                // Experiences
+                document.getElementById('experiencesList').innerHTML = experiences.length
+                    ? experiences.map(e => `
+                        <div class="data-item">
+                            <div class="data-item-info">
+                                <h4>${e.role} at ${e.company}</h4>
+                                <p>${e.duration}</p>
+                            </div>
+                            <button class="btn-delete" onclick="deleteExperience(${e.id})">Delete</button>
+                        </div>`).join('')
+                    : '<p style="color: #8a8a9a; text-align: center; padding: 20px;">No experiences</p>';
+
+                // Skills
+                document.getElementById('skillsList').innerHTML = skills.length
+                    ? skills.map(s => `
+                        <div class="data-item">
+                            <div class="data-item-info">
+                                <h4>${s.name}</h4>
+                                <p>${s.category} | ${s.proficiency}%</p>
+                            </div>
+                            <button class="btn-delete" onclick="deleteSkill(${s.id})">Delete</button>
+                        </div>`).join('')
+                    : '<p style="color: #8a8a9a; text-align: center; padding: 20px;">No skills</p>';
+
+                // Inquiries
+                document.getElementById('inquiriesList').innerHTML = inquiries.length
+                    ? inquiries.map(i => `
+                        <div class="data-item">
+                            <div class="data-item-info">
+                                <h4>${i.name} (${i.email})</h4>
+                                <p>${i.projectType || 'No type'} | ${i.budget || 'No budget'} | <span class="status-badge status-${i.status}">${i.status}</span></p>
+                                <p>${i.message}</p>
+                            </div>
+                            <div style="display: flex; gap: 10px;">
+                                <button class="btn-delete" onclick="updateInquiryStatus(${i.id}, 'contacted')">Contact</button>
+                                <button class="btn-delete" onclick="updateInquiryStatus(${i.id}, 'completed')">Done</button>
+                            </div>
+                        </div>`).join('')
+                    : '<p style="color: #8a8a9a; text-align: center; padding: 20px;">No inquiries</p>';
+
+            } catch (err) { console.error(err); }
+        }
+
+        // Add Video
+        document.getElementById('addVideoForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const formData = new FormData();
+            formData.append('title', document.getElementById('videoTitle').value);
+            formData.append('category', document.getElementById('videoCategory').value);
+            formData.append('duration', document.getElementById('videoDuration').value);
+            formData.append('description', document.getElementById('videoDescription').value);
+
+            if (uploadMode === 'file') {
+                if (!selectedFile) { alert('Please select a video file'); return; }
+                formData.append('video', selectedFile);
+
+                try {
+                    const res = await fetch('/api/admin/videos', { method: 'POST', body: formData });
+                    if (res.ok) {
+                        alert('Video uploaded successfully!');
+                        e.target.reset();
+                        document.getElementById('fileName').textContent = '';
+                        selectedFile = null;
+                        loadAdminData();
+                    }
+                } catch (err) { console.error(err); alert('Upload failed'); }
+            } else {
+                const videoUrl = document.getElementById('videoUrl').value;
+                if (!videoUrl) { alert('Please enter a URL'); return; }
+
+                formData.append('videoUrl', videoUrl);
+
+                try {
+                    const res = await fetch('/api/admin/videos/url', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(Object.fromEntries(formData)) });
+                    if (res.ok) {
+                        alert('Video added successfully!');
+                        e.target.reset();
+                        loadAdminData();
+                    }
+                } catch (err) { console.error(err); }
+            }
+        });
+
+        // Add Experience
+        document.getElementById('addExperienceForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const data = {
+                company: document.getElementById('expCompany').value,
+                role: document.getElementById('expRole').value,
+                duration: document.getElementById('expDuration').value,
+                description: document.getElementById('expDescription').value,
+                isCurrent: document.getElementById('expCurrent').checked
+            };
+
+            await fetch('/api/admin/experiences', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+            e.target.reset();
+            loadAdminData();
+        });
+
+        // Add Skill
+        document.getElementById('addSkillForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const data = {
+                name: document.getElementById('skillName').value,
+                category: document.getElementById('skillCategory').value,
+                proficiency: parseInt(document.getElementById('skillProficiency').value)
+            };
+
+            await fetch('/api/admin/skills', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+            e.target.reset();
+            loadAdminData();
+        });
+
+        // Delete functions
+        async function deleteVideo(id) {
+            if (confirm('Delete this video?')) {
+                await fetch('/api/admin/videos/' + id, { method: 'DELETE' });
+                loadAdminData();
+            }
+        }
+
+        async function deleteExperience(id) {
+            if (confirm('Delete this experience?')) {
+                await fetch('/api/admin/experiences/' + id, { method: 'DELETE' });
+                loadAdminData();
+            }
+        }
+
+        async function deleteSkill(id) {
+            if (confirm('Delete this skill?')) {
+                await fetch('/api/admin/skills/' + id, { method: 'DELETE' });
+                loadAdminData();
+            }
+        }
+
+        async function updateInquiryStatus(id, status) {
+            await fetch('/api/admin/inquiries/' + id + '/status', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status }) });
+            loadAdminData();
+        }
+    </script>
+</body>
+</html>
