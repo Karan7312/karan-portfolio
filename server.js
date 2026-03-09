@@ -1,18 +1,36 @@
-const { createClient } = require('@supabase/supabase-js');
 const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const session = require('express-session');
 const bcrypt = require('bcryptjs');
 const path = require('path');
+const fs = require('fs');
+
+// For file uploads, we'll use the built-in parser for URL-encoded data
+// For Vercel deployment, we handle uploads differently
 
 const app = express();
+const DATA_FILE = path.join(__dirname, 'data.json');
 
-// Supabase Configuration
-const supabaseUrl = 'https://hcaccdvvnjhnypuhgqqc.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhjYWNjZHZ2bmhobnlwdWhnZ3FjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzY2NzIwMDAsImV4cCI6MjA1MjI0ODAwMH0.sb_publishable_SpmtA6LdDYE8PtVJd8BViw_gmEt9dNk';
+// Initialize data file
+if (!fs.existsSync(DATA_FILE)) {
+    const initialData = {
+        videos: [],
+        experiences: [],
+        skills: [],
+        inquiries: [],
+        admin: [{ username: 'admin', password: bcrypt.hashSync('karan123', 10) }]
+    };
+    fs.writeFileSync(DATA_FILE, JSON.stringify(initialData, null, 2));
+}
 
-const supabase = createClient(supabaseUrl, supabaseKey);
+function loadData() {
+    return JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
+}
+
+function saveData(data) {
+    fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
+}
 
 // Middleware
 app.use(cors());
@@ -27,60 +45,40 @@ app.use(session({
 // ==================== PUBLIC API ROUTES ====================
 
 // Get all videos
-app.get('/api/videos', async (req, res) => {
-    try {
-        const { data, error } = await supabase
-            .from('videos')
-            .select('*')
-            .order('created_at', { ascending: false });
-        if (error) throw error;
-        res.json(data);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+app.get('/api/videos', (req, res) => {
+    const data = loadData();
+    res.json(data.videos);
 });
 
 // Get all experiences
-app.get('/api/experiences', async (req, res) => {
-    try {
-        const { data, error } = await supabase
-            .from('experiences')
-            .select('*')
-            .order('is_current', { ascending: false });
-        if (error) throw error;
-        res.json(data);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+app.get('/api/experiences', (req, res) => {
+    const data = loadData();
+    res.json(data.experiences);
 });
 
 // Get all skills
-app.get('/api/skills', async (req, res) => {
-    try {
-        const { data, error } = await supabase
-            .from('skills')
-            .select('*')
-            .order('proficiency', { ascending: false });
-        if (error) throw error;
-        res.json(data);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+app.get('/api/skills', (req, res) => {
+    const data = loadData();
+    res.json(data.skills);
 });
 
-// Submit contact form (public)
-app.post('/api/inquiries', async (req, res) => {
-    try {
-        const { name, email, projectType, budget, message } = req.body;
-        const { data, error } = await supabase
-            .from('inquiries')
-            .insert([{ name, email, project_type: projectType, budget, message, status: 'new' }])
-            .select();
-        if (error) throw error;
-        res.json({ message: 'Inquiry submitted successfully!' });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+// Submit contact form
+app.post('/api/inquiries', (req, res) => {
+    const data = loadData();
+    const { name, email, projectType, budget, message } = req.body;
+    const newInquiry = {
+        id: Date.now(),
+        name,
+        email,
+        projectType,
+        budget,
+        message,
+        createdAt: new Date().toISOString(),
+        status: 'new'
+    };
+    data.inquiries.unshift(newInquiry);
+    saveData(data);
+    res.json({ message: 'Inquiry submitted successfully!' });
 });
 
 // ==================== ADMIN API ROUTES ====================
@@ -92,172 +90,135 @@ function requireAdmin(req, res, next) {
     next();
 }
 
-// Admin login
-app.post('/api/admin/login', async (req, res) => {
-    try {
-        const { username, password } = req.body;
-        const { data, error } = await supabase
-            .from('admin')
-            .select('*')
-            .eq('username', username)
-            .single();
+app.post('/api/admin/login', (req, res) => {
+    const data = loadData();
+    const { username, password } = req.body;
+    const admin = data.admin.find(a => a.username === username);
 
-        if (error || !data) {
-            return res.status(401).json({ error: 'Invalid credentials' });
-        }
-
-        if (bcrypt.compareSync(password, data.password)) {
-            req.session.adminId = data.id;
-            res.json({ message: 'Login successful' });
-        } else {
-            res.status(401).json({ error: 'Invalid credentials' });
-        }
-    } catch (err) {
-        res.status(500).json({ error: err.message });
+    if (admin && bcrypt.compareSync(password, admin.password)) {
+        req.session.adminId = admin.id;
+        res.json({ message: 'Login successful' });
+    } else {
+        res.status(401).json({ error: 'Invalid credentials' });
     }
 });
 
-// Admin logout
 app.post('/api/admin/logout', (req, res) => {
     req.session.destroy();
     res.json({ message: 'Logged out successfully' });
 });
 
-// Check admin status
 app.get('/api/admin/check', (req, res) => {
     res.json({ authenticated: !!req.session.adminId });
 });
 
-// ==================== ADMIN VIDEO ROUTES ====================
-
-app.post('/api/admin/videos/url', requireAdmin, async (req, res) => {
-    try {
-        const { title, category, videoUrl, duration, description } = req.body;
-        const { data, error } = await supabase
-            .from('videos')
-            .insert([{
-                title,
-                category,
-                video_path: videoUrl,
-                duration,
-                description
-            }])
-            .select();
-        if (error) throw error;
-        res.json({ message: 'Video added successfully!' });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+// Videos - Add via JSON (for URL-based videos)
+app.post('/api/admin/videos', requireAdmin, (req, res) => {
+    const data = loadData();
+    const { title, category, videoUrl, duration, description } = req.body;
+    const newVideo = {
+        id: Date.now(),
+        title,
+        category,
+        videoUrl: videoUrl,
+        duration,
+        description,
+        createdAt: new Date().toISOString()
+    };
+    data.videos.unshift(newVideo);
+    saveData(data);
+    res.json({ message: 'Video added successfully!' });
 });
 
-app.delete('/api/admin/videos/:id', requireAdmin, async (req, res) => {
-    try {
-        const { error } = await supabase
-            .from('videos')
-            .delete()
-            .eq('id', req.params.id);
-        if (error) throw error;
-        res.json({ message: 'Video deleted successfully' });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+// Videos - Add via URL (YouTube/Vimeo)
+app.post('/api/admin/videos/url', requireAdmin, (req, res) => {
+    const data = loadData();
+    const { title, category, videoUrl, duration, description } = req.body;
+    const newVideo = {
+        id: Date.now(),
+        title,
+        category,
+        videoUrl: videoUrl,
+        duration,
+        description,
+        createdAt: new Date().toISOString()
+    };
+    data.videos.unshift(newVideo);
+    saveData(data);
+    res.json({ message: 'Video added successfully!' });
 });
 
-// ==================== ADMIN EXPERIENCE ROUTES ====================
-
-app.post('/api/admin/experiences', requireAdmin, async (req, res) => {
-    try {
-        const { company, role, duration, description, isCurrent } = req.body;
-        const { data, error } = await supabase
-            .from('experiences')
-            .insert([{
-                company,
-                role,
-                duration,
-                description,
-                is_current: isCurrent || false
-            }])
-            .select();
-        if (error) throw error;
-        res.json({ message: 'Experience added successfully!' });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+app.delete('/api/admin/videos/:id', requireAdmin, (req, res) => {
+    const data = loadData();
+    data.videos = data.videos.filter(v => v.id != req.params.id);
+    saveData(data);
+    res.json({ message: 'Video deleted successfully' });
 });
 
-app.delete('/api/admin/experiences/:id', requireAdmin, async (req, res) => {
-    try {
-        const { error } = await supabase
-            .from('experiences')
-            .delete()
-            .eq('id', req.params.id);
-        if (error) throw error;
-        res.json({ message: 'Experience deleted successfully' });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+// Experiences
+app.post('/api/admin/experiences', requireAdmin, (req, res) => {
+    const data = loadData();
+    const { company, role, duration, description, isCurrent } = req.body;
+    const newExp = {
+        id: Date.now(),
+        company,
+        role,
+        duration,
+        description,
+        isCurrent
+    };
+    data.experiences.unshift(newExp);
+    saveData(data);
+    res.json({ message: 'Experience added successfully!' });
 });
 
-// ==================== ADMIN SKILLS ROUTES ====================
-
-app.post('/api/admin/skills', requireAdmin, async (req, res) => {
-    try {
-        const { name, category, proficiency, icon } = req.body;
-        const { data, error } = await supabase
-            .from('skills')
-            .insert([{ name, category, proficiency, icon }])
-            .select();
-        if (error) throw error;
-        res.json({ message: 'Skill added successfully!' });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+app.delete('/api/admin/experiences/:id', requireAdmin, (req, res) => {
+    const data = loadData();
+    data.experiences = data.experiences.filter(e => e.id != req.params.id);
+    saveData(data);
+    res.json({ message: 'Experience deleted successfully' });
 });
 
-app.delete('/api/admin/skills/:id', requireAdmin, async (req, res) => {
-    try {
-        const { error } = await supabase
-            .from('skills')
-            .delete()
-            .eq('id', req.params.id);
-        if (error) throw error;
-        res.json({ message: 'Skill deleted successfully' });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+// Skills
+app.post('/api/admin/skills', requireAdmin, (req, res) => {
+    const data = loadData();
+    const { name, category, proficiency, icon } = req.body;
+    const newSkill = {
+        id: Date.now(),
+        name,
+        category,
+        proficiency,
+        icon
+    };
+    data.skills.push(newSkill);
+    saveData(data);
+    res.json({ message: 'Skill added successfully!' });
 });
 
-// ==================== ADMIN INQUIRIES ROUTES ====================
-
-app.get('/api/admin/inquiries', requireAdmin, async (req, res) => {
-    try {
-        const { data, error } = await supabase
-            .from('inquiries')
-            .select('*')
-            .order('created_at', { ascending: false });
-        if (error) throw error;
-        res.json(data);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+app.delete('/api/admin/skills/:id', requireAdmin, (req, res) => {
+    const data = loadData();
+    data.skills = data.skills.filter(s => s.id != req.params.id);
+    saveData(data);
+    res.json({ message: 'Skill deleted successfully' });
 });
 
-app.patch('/api/admin/inquiries/:id/status', requireAdmin, async (req, res) => {
-    try {
-        const { status } = req.body;
-        const { error } = await supabase
-            .from('inquiries')
-            .update({ status })
-            .eq('id', req.params.id);
-        if (error) throw error;
-        res.json({ message: 'Status updated successfully' });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+// Inquiries
+app.get('/api/admin/inquiries', requireAdmin, (req, res) => {
+    const data = loadData();
+    res.json(data.inquiries);
 });
 
-// ==================== PAGE ROUTES ====================
+app.patch('/api/admin/inquiries/:id/status', requireAdmin, (req, res) => {
+    const data = loadData();
+    const inquiry = data.inquiries.find(i => i.id == req.params.id);
+    if (inquiry) {
+        inquiry.status = req.body.status;
+        saveData(data);
+    }
+    res.json({ message: 'Status updated successfully' });
+});
 
+// Pages
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });

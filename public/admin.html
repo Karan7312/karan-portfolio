@@ -43,8 +43,8 @@
         .form-group { margin-bottom: 18px; }
         .form-group.full { grid-column: 1 / -1; }
         .form-group label { display: block; font-size: 12px; font-weight: 500; color: var(--text-gray); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
-        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 14px 18px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 10px; color: var(--text-white); font-family: 'Outfit', sans-serif; font-size: 14px; transition: all 0.3s easeform-group input:focus; }
-        ., .form-group select:focus, .form-group textarea:focus { outline: none; border-color: var(--accent-red); }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 14px 18px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 10px; color: var(--text-white); font-family: 'Outfit', sans-serif; font-size: 14px; transition: all 0.3s ease; }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: var(--accent-red); }
         .form-group textarea { min-height: 100px; resize: vertical; }
 
         .file-upload { border: 2px dashed var(--border-color); border-radius: 12px; padding: 40px; text-align: center; cursor: pointer; transition: all 0.3s ease; }
@@ -128,17 +128,6 @@
             <div class="form-card">
                 <h3>Add New Video</h3>
                 <form id="addVideoForm">
-                    <div class="upload-options">
-                        <div class="upload-option active" id="uploadOptionFile" onclick="setUploadMode('file')">
-                            <i class="fas fa-cloud-upload-alt"></i>
-                            <p>Upload File</p>
-                        </div>
-                        <div class="upload-option" id="uploadOptionUrl" onclick="setUploadMode('url')">
-                            <i class="fas fa-link"></i>
-                            <p>YouTube/Vimeo URL</p>
-                        </div>
-                    </div>
-
                     <div class="form-grid">
                         <div class="form-group">
                             <input type="text" id="videoTitle" placeholder="Video Title" required>
@@ -154,18 +143,8 @@
                         </div>
                     </div>
 
-                    <div class="form-group" id="fileUploadGroup">
-                        <div class="file-upload" onclick="document.getElementById('videoFile').click()">
-                            <i class="fas fa-cloud-upload-alt"></i>
-                            <p>Click to upload video file</p>
-                            <span>MP4, WebM, MOV (Max 500MB)</span>
-                            <input type="file" id="videoFile" accept="video/*">
-                            <div class="file-name" id="fileName"></div>
-                        </div>
-                    </div>
-
-                    <div class="form-group hidden" id="urlUploadGroup">
-                        <input type="text" id="videoUrl" placeholder="YouTube or Vimeo URL">
+                    <div class="form-group">
+                        <input type="text" id="videoUrl" placeholder="YouTube or Vimeo Video URL" required>
                     </div>
 
                     <div class="form-grid">
@@ -253,9 +232,6 @@
     </div>
 
     <script>
-        let uploadMode = 'file';
-        let selectedFile = null;
-
         // Check if logged in
         async function checkAuth() {
             try {
@@ -309,23 +285,6 @@
                 tab.classList.add('active');
                 document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
             });
-        });
-
-        // Upload mode
-        function setUploadMode(mode) {
-            uploadMode = mode;
-            document.getElementById('uploadOptionFile').classList.toggle('active', mode === 'file');
-            document.getElementById('uploadOptionUrl').classList.toggle('active', mode === 'url');
-            document.getElementById('fileUploadGroup').classList.toggle('hidden', mode !== 'file');
-            document.getElementById('urlUploadGroup').classList.toggle('hidden', mode !== 'url');
-        }
-
-        // File selection
-        document.getElementById('videoFile').addEventListener('change', (e) => {
-            if (e.target.files[0]) {
-                selectedFile = e.target.files[0];
-                document.getElementById('fileName').textContent = selectedFile.name;
-            }
         });
 
         // Load admin data
@@ -397,41 +356,37 @@
         document.getElementById('addVideoForm').addEventListener('submit', async (e) => {
             e.preventDefault();
 
-            const formData = new FormData();
-            formData.append('title', document.getElementById('videoTitle').value);
-            formData.append('category', document.getElementById('videoCategory').value);
-            formData.append('duration', document.getElementById('videoDuration').value);
-            formData.append('description', document.getElementById('videoDescription').value);
+            const title = document.getElementById('videoTitle').value;
+            const category = document.getElementById('videoCategory').value;
+            const duration = document.getElementById('videoDuration').value;
+            const description = document.getElementById('videoDescription').value;
+            const videoUrl = document.getElementById('videoUrl').value;
 
-            if (uploadMode === 'file') {
-                if (!selectedFile) { alert('Please select a video file'); return; }
-                formData.append('video', selectedFile);
+            if (!videoUrl) { alert('Please enter a YouTube or Vimeo URL'); return; }
 
-                try {
-                    const res = await fetch('/api/admin/videos', { method: 'POST', body: formData });
-                    if (res.ok) {
-                        alert('Video uploaded successfully!');
-                        e.target.reset();
-                        document.getElementById('fileName').textContent = '';
-                        selectedFile = null;
-                        loadAdminData();
-                    }
-                } catch (err) { console.error(err); alert('Upload failed'); }
-            } else {
-                const videoUrl = document.getElementById('videoUrl').value;
-                if (!videoUrl) { alert('Please enter a URL'); return; }
+            const data = {
+                title,
+                category,
+                duration,
+                description,
+                videoUrl
+            };
 
-                formData.append('videoUrl', videoUrl);
-
-                try {
-                    const res = await fetch('/api/admin/videos/url', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(Object.fromEntries(formData)) });
-                    if (res.ok) {
-                        alert('Video added successfully!');
-                        e.target.reset();
-                        loadAdminData();
-                    }
-                } catch (err) { console.error(err); }
-            }
+            try {
+                const res = await fetch('/api/admin/videos/url', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                if (res.ok) {
+                    alert('Video added successfully!');
+                    e.target.reset();
+                    loadAdminData();
+                } else {
+                    const err = await res.json();
+                    alert(err.error || 'Failed to add video');
+                }
+            } catch (err) { console.error(err); alert('Error adding video'); }
         });
 
         // Add Experience

@@ -363,15 +363,18 @@
         function renderPortfolio(videos) {
             const grid = document.getElementById('portfolioGrid');
             if (videos.length === 0) { grid.innerHTML = '<p style="color: #8a8a9a; grid-column: 1/-1; text-align: center; padding: 40px;">No videos yet. Add videos from admin panel!</p>'; return; }
-            grid.innerHTML = videos.map((video, index) => `
-                <div class="portfolio-item reveal" onclick="playVideo('${video.videoPath}')" style="animation-delay: ${index * 0.1}s">
+            grid.innerHTML = videos.map((video, index) => {
+                const videoUrl = video.videoUrl || video.videoPath || '';
+                return `
+                <div class="portfolio-item reveal" onclick="playVideo('${videoUrl}')" style="animation-delay: ${index * 0.1}s">
                     <div class="portfolio-thumb">
-                        <video preload="metadata"><source src="${video.videoPath}" type="video/mp4"></video>
+                        <video preload="metadata"><source src="${videoUrl}" type="video/mp4"></video>
                         <div class="portfolio-play"><i class="fas fa-play"></i></div>
                         ${video.duration ? `<span class="portfolio-duration">${video.duration}</span>` : ''}
                     </div>
                     <div class="portfolio-info"><span class="portfolio-category">${video.category}</span><h3>${video.title}</h3><p>${video.description || ''}</p></div>
-                </div>`).join('');
+                </div>`;
+            }).join('');
             setTimeout(checkReveal, 100);
         }
         document.querySelectorAll('.filter-btn').forEach(btn => { btn.addEventListener('click', () => { document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); const filter = btn.dataset.filter; renderPortfolio(filter === 'all' ? allVideos : allVideos.filter(v => v.category === filter)); }); });
