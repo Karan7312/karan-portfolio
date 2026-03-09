@@ -417,11 +417,47 @@
         // Contact Form
         document.getElementById('contactForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const formData = { name: document.getElementById('name').value, email: document.getElementById('email').value, projectType: document.getElementById('projectType').value, budget: document.getElementById('budget').value, message: document.getElementById('message').value };
+            const formData = {
+                name: document.getElementById('name').value,
+                email: document.getElementById('email').value,
+                projectType: document.getElementById('projectType').value,
+                budget: document.getElementById('budget').value,
+                message: document.getElementById('message').value
+            };
+
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Sending...';
+
             try {
-                const response = await fetch('/api/inquiries', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(formData) });
-                if (response.ok) { document.getElementById('formSuccess').style.display = 'block'; e.target.reset(); setTimeout(() => document.getElementById('formSuccess').style.display = 'none', 5000); }
-            } catch (error) { console.error('Error:', error); }
+                const response = await fetch('/api/inquiries', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData)
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    document.getElementById('formSuccess').textContent = 'Message sent successfully!';
+                    document.getElementById('formSuccess').style.display = 'block';
+                    document.getElementById('formSuccess').style.background = 'rgba(46, 213, 115, 0.15)';
+                    document.getElementById('formSuccess').style.color = '#2ed573';
+                    document.getElementById('formSuccess').style.borderColor = '#2ed573';
+                    e.target.reset();
+                    setTimeout(() => {
+                        document.getElementById('formSuccess').style.display = 'none';
+                    }, 5000);
+                } else {
+                    alert(result.error || 'Failed to send message');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Failed to send message. Please try again.');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Send Message';
+            }
         });
 
         loadData();

@@ -34,7 +34,8 @@ function saveData(data) {
 
 // Middleware
 app.use(cors());
-app.use(bodyParser.json());
+app.use(bodyParser.json({ limit: '10mb' }));
+app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(session({
     secret: 'karan-portfolio-secret-key',
@@ -64,21 +65,31 @@ app.get('/api/skills', (req, res) => {
 
 // Submit contact form
 app.post('/api/inquiries', (req, res) => {
-    const data = loadData();
-    const { name, email, projectType, budget, message } = req.body;
-    const newInquiry = {
-        id: Date.now(),
-        name,
-        email,
-        projectType,
-        budget,
-        message,
-        createdAt: new Date().toISOString(),
-        status: 'new'
-    };
-    data.inquiries.unshift(newInquiry);
-    saveData(data);
-    res.json({ message: 'Inquiry submitted successfully!' });
+    try {
+        const data = loadData();
+        const { name, email, projectType, budget, message } = req.body;
+
+        if (!name || !email || !message) {
+            return res.status(400).json({ error: 'Name, email, and message are required' });
+        }
+
+        const newInquiry = {
+            id: Date.now(),
+            name,
+            email,
+            projectType: projectType || '',
+            budget: budget || '',
+            message,
+            createdAt: new Date().toISOString(),
+            status: 'new'
+        };
+        data.inquiries.unshift(newInquiry);
+        saveData(data);
+        res.json({ message: 'Inquiry submitted successfully!' });
+    } catch (error) {
+        console.error('Error submitting inquiry:', error);
+        res.status(500).json({ error: 'Failed to submit inquiry' });
+    }
 });
 
 // ==================== ADMIN API ROUTES ====================
