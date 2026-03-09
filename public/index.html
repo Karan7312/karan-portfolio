@@ -447,42 +447,69 @@
             console.log('Inquiry saved:', formData);
         });
 
-        // Data loading with localStorage fallback
+        // Data loading - use localStorage for persistence on Vercel
         let allVideos = [];
         async function loadData() {
-            // Default data
+            // Check localStorage first
+            let videos = JSON.parse(localStorage.getItem('portfolio_videos') || 'null');
+            let experiences = JSON.parse(localStorage.getItem('portfolio_experiences') || 'null');
+            let skills = JSON.parse(localStorage.getItem('portfolio_skills') || 'null');
+
+            // If no localStorage data, try server, then use defaults
+            if (!videos) {
+                try {
+                    videos = await fetch('/api/videos').then(r => r.json());
+                } catch (e) { videos = null; }
+            }
+            if (!experiences) {
+                try {
+                    experiences = await fetch('/api/experiences').then(r => r.json());
+                } catch (e) { experiences = null; }
+            }
+            if (!skills) {
+                try {
+                    skills = await fetch('/api/skills').then(r => r.json());
+                } catch (e) { skills = null; }
+            }
+
+            // Default data if nothing found
             const defaultVideos = [
-                { id: 1, title: 'Brand Commercial', category: 'commercial', videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', duration: '2:30', description: 'Promotional video' },
-                { id: 2, title: 'Music Video', category: 'music-video', videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', duration: '4:15', description: 'Music video edit' }
+                { id: 1, title: 'Brand Commercial - Tech Startup', category: 'commercial', videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', duration: '2:30', description: 'Promotional video for a tech startup' },
+                { id: 2, title: 'Music Video - Indie Band', category: 'music-video', videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', duration: '4:15', description: 'Music video for indie band' },
+                { id: 3, title: 'Documentary - City Life', category: 'documentary', videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', duration: '15:00', description: 'Short documentary about urban life' }
             ];
             const defaultExperiences = [
-                { id: 1, company: 'Freelance', role: 'Professional Video Editor', duration: '2023 - Present', description: 'Working with clients worldwide' },
-                { id: 2, company: 'Digital Agency', role: 'Senior Video Editor', duration: '2021 - 2023', description: 'Led video production' }
+                { id: 1, company: 'Freelance', role: 'Professional Video Editor', duration: '2023 - Present', description: 'Working with clients worldwide on commercial videos, music videos, and social media content. Specializing in Adobe Premiere Pro and After Effects.', isCurrent: true },
+                { id: 2, company: 'Digital Media Agency', role: 'Senior Video Editor', duration: '2021 - 2023', description: 'Led video production for major brand campaigns. Managed a team of 3 junior editors.', isCurrent: false },
+                { id: 3, company: 'Content Creation Studio', role: 'Video Editor & Motion Graphics', duration: '2019 - 2021', description: 'Created engaging video content for YouTube channels and social media platforms.', isCurrent: false }
             ];
             const defaultSkills = [
                 { id: 1, name: 'Adobe Premiere Pro', category: 'video-editing', proficiency: 95 },
-                { id: 2, name: 'DaVinci Resolve', category: 'video-editing', proficiency: 85 },
-                { id: 3, name: 'After Effects', category: 'motion-graphics', proficiency: 80 }
+                { id: 2, name: 'Adobe After Effects', category: 'motion-graphics', proficiency: 85 },
+                { id: 3, name: 'DaVinci Resolve', category: 'video-editing', proficiency: 80 },
+                { id: 4, name: 'Final Cut Pro', category: 'video-editing', proficiency: 75 },
+                { id: 5, name: 'Color Grading', category: 'color-grading', proficiency: 90 },
+                { id: 6, name: 'Sound Design', category: 'audio', proficiency: 80 },
+                { id: 7, name: 'Adobe Audition', category: 'audio', proficiency: 75 },
+                { id: 8, name: 'CapCut', category: 'video-editing', proficiency: 85 },
+                { id: 9, name: 'Motion Graphics', category: 'motion-graphics', proficiency: 85 }
             ];
 
-            try {
-                // Try to fetch from server first
-                const [videos, experiences, skills] = await Promise.all([
-                    fetch('/api/videos').then(r => r.json()).catch(() => defaultVideos),
-                    fetch('/api/experiences').then(r => r.json()).catch(() => defaultExperiences),
-                    fetch('/api/skills').then(r => r.json()).catch(() => defaultSkills)
-                ]);
-                allVideos = videos.length ? videos : defaultVideos;
-                renderPortfolio(allVideos);
-                renderExperience(experiences.length ? experiences : defaultExperiences);
-                renderSkills(skills.length ? skills : defaultSkills);
-            } catch (error) {
-                console.log('Using default data');
-                allVideos = defaultVideos;
-                renderPortfolio(defaultVideos);
-                renderExperience(defaultExperiences);
-                renderSkills(defaultSkills);
+            // Use loaded data or defaults
+            allVideos = (videos && videos.length) ? videos : defaultVideos;
+            const expData = (experiences && experiences.length) ? experiences : defaultExperiences;
+            const skillData = (skills && skills.length) ? skills : defaultSkills;
+
+            // Save defaults to localStorage for first time
+            if (!localStorage.getItem('portfolio_videos')) {
+                localStorage.setItem('portfolio_videos', JSON.stringify(allVideos));
+                localStorage.setItem('portfolio_experiences', JSON.stringify(expData));
+                localStorage.setItem('portfolio_skills', JSON.stringify(skillData));
             }
+
+            renderPortfolio(allVideos);
+            renderExperience(expData);
+            renderSkills(skillData);
         }
 
         loadData();
