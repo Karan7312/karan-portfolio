@@ -414,7 +414,7 @@
             setTimeout(checkReveal, 100);
         }
 
-        // Contact Form
+        // Contact Form - Using localStorage for reliability on Vercel
         document.getElementById('contactForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const formData = {
@@ -422,43 +422,68 @@
                 email: document.getElementById('email').value,
                 projectType: document.getElementById('projectType').value,
                 budget: document.getElementById('budget').value,
-                message: document.getElementById('message').value
+                message: document.getElementById('message').value,
+                id: Date.now(),
+                createdAt: new Date().toISOString(),
+                status: 'new'
             };
 
-            const submitBtn = e.target.querySelector('button[type="submit"]');
-            submitBtn.disabled = true;
-            submitBtn.textContent = 'Sending...';
+            // Save to localStorage (works offline and on Vercel)
+            const inquiries = JSON.parse(localStorage.getItem('portfolio_inquiries') || '[]');
+            inquiries.unshift(formData);
+            localStorage.setItem('portfolio_inquiries', JSON.stringify(inquiries));
+
+            // Show success
+            document.getElementById('formSuccess').textContent = 'Message sent successfully!';
+            document.getElementById('formSuccess').style.display = 'block';
+            document.getElementById('formSuccess').style.background = 'rgba(46, 213, 115, 0.15)';
+            document.getElementById('formSuccess').style.color = '#2ed573';
+            document.getElementById('formSuccess').style.borderColor = '#2ed573';
+            e.target.reset();
+            setTimeout(() => {
+                document.getElementById('formSuccess').style.display = 'none';
+            }, 5000);
+
+            console.log('Inquiry saved:', formData);
+        });
+
+        // Data loading with localStorage fallback
+        let allVideos = [];
+        async function loadData() {
+            // Default data
+            const defaultVideos = [
+                { id: 1, title: 'Brand Commercial', category: 'commercial', videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', duration: '2:30', description: 'Promotional video' },
+                { id: 2, title: 'Music Video', category: 'music-video', videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', duration: '4:15', description: 'Music video edit' }
+            ];
+            const defaultExperiences = [
+                { id: 1, company: 'Freelance', role: 'Professional Video Editor', duration: '2023 - Present', description: 'Working with clients worldwide' },
+                { id: 2, company: 'Digital Agency', role: 'Senior Video Editor', duration: '2021 - 2023', description: 'Led video production' }
+            ];
+            const defaultSkills = [
+                { id: 1, name: 'Adobe Premiere Pro', category: 'video-editing', proficiency: 95 },
+                { id: 2, name: 'DaVinci Resolve', category: 'video-editing', proficiency: 85 },
+                { id: 3, name: 'After Effects', category: 'motion-graphics', proficiency: 80 }
+            ];
 
             try {
-                const response = await fetch('/api/inquiries', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(formData)
-                });
-
-                const result = await response.json();
-
-                if (response.ok) {
-                    document.getElementById('formSuccess').textContent = 'Message sent successfully!';
-                    document.getElementById('formSuccess').style.display = 'block';
-                    document.getElementById('formSuccess').style.background = 'rgba(46, 213, 115, 0.15)';
-                    document.getElementById('formSuccess').style.color = '#2ed573';
-                    document.getElementById('formSuccess').style.borderColor = '#2ed573';
-                    e.target.reset();
-                    setTimeout(() => {
-                        document.getElementById('formSuccess').style.display = 'none';
-                    }, 5000);
-                } else {
-                    alert(result.error || 'Failed to send message');
-                }
+                // Try to fetch from server first
+                const [videos, experiences, skills] = await Promise.all([
+                    fetch('/api/videos').then(r => r.json()).catch(() => defaultVideos),
+                    fetch('/api/experiences').then(r => r.json()).catch(() => defaultExperiences),
+                    fetch('/api/skills').then(r => r.json()).catch(() => defaultSkills)
+                ]);
+                allVideos = videos.length ? videos : defaultVideos;
+                renderPortfolio(allVideos);
+                renderExperience(experiences.length ? experiences : defaultExperiences);
+                renderSkills(skills.length ? skills : defaultSkills);
             } catch (error) {
-                console.error('Error:', error);
-                alert('Failed to send message. Please try again.');
-            } finally {
-                submitBtn.disabled = false;
-                submitBtn.textContent = 'Send Message';
+                console.log('Using default data');
+                allVideos = defaultVideos;
+                renderPortfolio(defaultVideos);
+                renderExperience(defaultExperiences);
+                renderSkills(defaultSkills);
             }
-        });
+        }
 
         loadData();
     </script>

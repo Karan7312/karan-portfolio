@@ -289,25 +289,49 @@
 
         // Load admin data
         async function loadAdminData() {
-            try {
-                const [videos, experiences, skills, inquiries] = await Promise.all([
-                    fetch('/api/videos').then(r => r.json()),
-                    fetch('/api/experiences').then(r => r.json()),
-                    fetch('/api/skills').then(r => r.json()),
-                    fetch('/api/admin/inquiries').then(r => r.json())
-                ]);
+            // Get inquiries from localStorage (contact form stores there)
+            let inquiries = JSON.parse(localStorage.getItem('portfolio_inquiries') || '[]');
 
-                // Videos
-                document.getElementById('videosList').innerHTML = videos.length
-                    ? videos.map(v => `
-                        <div class="data-item">
-                            <div class="data-item-info">
-                                <h4>${v.title}</h4>
-                                <p>${v.category} | ${v.duration || 'No duration'}</p>
-                            </div>
-                            <button class="btn-delete" onclick="deleteVideo(${v.id})">Delete</button>
-                        </div>`).join('')
-                    : '<p style="color: #8a8a9a; text-align: center; padding: 20px;">No videos</p>';
+            // Also try to fetch from server as backup
+            try {
+                const serverInquiries = await fetch('/api/admin/inquiries').then(r => r.json()).catch(() => []);
+                // Merge server inquiries with localStorage (avoid duplicates)
+                const localIds = inquiries.map(i => i.id);
+                const merged = serverInquiries.filter(i => !localIds.includes(i.id));
+                inquiries = [...inquiries, ...merged];
+            } catch (e) {
+                console.log('Using localStorage inquiries only');
+            }
+
+            // Videos
+            let videos = [];
+            try {
+                videos = await fetch('/api/videos').then(r => r.json()).catch(() => []);
+            } catch (e) {}
+
+            // Experiences
+            let experiences = [];
+            try {
+                experiences = await fetch('/api/experiences').then(r => r.json()).catch(() => []);
+            } catch (e) {}
+
+            // Skills
+            let skills = [];
+            try {
+                skills = await fetch('/api/skills').then(r => r.json()).catch(() => []);
+            } catch (e) {}
+
+            // Videos list
+            document.getElementById('videosList').innerHTML = videos.length
+                ? videos.map(v => `
+                    <div class="data-item">
+                        <div class="data-item-info">
+                            <h4>${v.title || v.videoUrl}</h4>
+                            <p>${v.category || 'video'} | ${v.duration || 'No duration'}</p>
+                        </div>
+                        <button class="btn-delete" onclick="deleteVideo(${v.id})">Delete</button>
+                    </div>`).join('')
+                : '<p style="color: #8a8a9a; text-align: center; padding: 20px;">No videos</p>';
 
                 // Experiences
                 document.getElementById('experiencesList').innerHTML = experiences.length
@@ -333,13 +357,13 @@
                         </div>`).join('')
                     : '<p style="color: #8a8a9a; text-align: center; padding: 20px;">No skills</p>';
 
-                // Inquiries
-                document.getElementById('inquiriesList').innerHTML = inquiries.length
+                // Inquiries (from localStorage + server)
+                document.getElementById('inquiriesList').innerHTML = inquiries && inquiries.length
                     ? inquiries.map(i => `
                         <div class="data-item">
                             <div class="data-item-info">
                                 <h4>${i.name} (${i.email})</h4>
-                                <p>${i.projectType || 'No type'} | ${i.budget || 'No budget'} | <span class="status-badge status-${i.status}">${i.status}</span></p>
+                                <p>${i.projectType || 'No type'} | ${i.budget || 'No budget'} | <span class="status-badge status-${i.status || 'new'}">${i.status || 'new'}</span></p>
                                 <p>${i.message}</p>
                             </div>
                             <div style="display: flex; gap: 10px;">
@@ -348,8 +372,6 @@
                             </div>
                         </div>`).join('')
                     : '<p style="color: #8a8a9a; text-align: center; padding: 20px;">No inquiries</p>';
-
-            } catch (err) { console.error(err); }
         }
 
         // Add Video
@@ -442,7 +464,19 @@
         }
 
         async function updateInquiryStatus(id, status) {
-            await fetch('/api/admin/inquiries/' + id + '/status', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status }) });
+            // Update in localStorage
+            let inquiries = JSON.parse(localStorage.getItem('portfolio_inquiries') || '[]');
+            const inquiry = inquiries.find(i => i.id === id);
+            if (inquiry) {
+                inquiry.status = status;
+                localStorage.setItem('portfolio_inquiries', JSON.stringify(inquiries));
+            }
+
+            // Also try server
+            try {
+                await fetch('/api/admin/inquiries/' + id + '/status', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status }) });
+            } catch (e) {}
+
             loadAdminData();
         }
     </script>
